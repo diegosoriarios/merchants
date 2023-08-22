@@ -25,7 +25,8 @@ const STATES = {
 const itemList = {
   "apple": {
     value: 1,
-    chancesToFind: .9
+    chancesToFind: .9,
+    image: appleImg
   },
   "meat": {
     value: 4,
@@ -62,6 +63,7 @@ const itemList = {
   "wood": {
     value: 1,
     chancesToFind: .9,
+    image: woodImg
   },
   "books": {
     value: 8,
@@ -204,6 +206,25 @@ const generateAttacks = () => {
   }
 };
 
+const manageItem = winItem => {
+  if (winItem) {
+
+  } else {
+    let random = 0;
+    do {
+      random = Math.floor(randomNumber(0, 2));
+    } while(!inventory[random].length)
+    let randomItem = inventory[random].filter(item => item.qtd != 0);
+
+    const randomIndex = Math.floor(randomNumber(0, randomItem.length));
+
+    inventory[random][randomIndex] = {
+      ...inventory[random][randomIndex],
+      qtd: inventory[random][randomIndex].qtd - 1
+    }
+  }
+}
+
 const handleKeyPress = (event) => {
   const code = event.code;
 
@@ -221,6 +242,7 @@ const handleKeyPress = (event) => {
           state = STATES.BATTLE1
         } else {
           needsToChose = false;
+          manageItem(false);
         }
     }
   }
@@ -365,13 +387,6 @@ woodGradient.addColorStop(0, "#87674f");
 woodGradient.addColorStop(0.5, "#563232");
 woodGradient.addColorStop(1, "#87674f");
 
-horseImage = new Image();
-horseImage.src = "./assets/horse.png";
-cloudImage1 = new Image();
-cloudImage1.src = "./assets/clouds/1.png";
-cloudImage2 = new Image();
-cloudImage2.src = "./assets/clouds/2.png";
-
 const draw = () => {
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -407,12 +422,17 @@ const draw = () => {
     inv.forEach((item, idx) => {
       const inventoryX = 8 + 32 * idx + (40 * idx);
       const inventoryY = canvas.height - inventoryHeight;
+
+      if (item.image != null) {
+        ctx.drawImage(item.image, inventoryX, inventoryY)
+      }
   
       ctx.strokeStyle = "white";
       ctx.beginPath();
       ctx.rect(inventoryX, inventoryY, 64, 64);
       ctx.fillStyle = 'white';
-      ctx.fillText(`${idx}`, inventoryX + 32, inventoryY + 32);
+      ctx.fillText(`${item.qtd ?? 0}`, inventoryX + 32, inventoryY + 32);
+      ctx.fillText(`${item.name ?? ""}`, inventoryX + 32, inventoryY + 48);
       ctx.stroke();
     });
   })
@@ -457,7 +477,6 @@ const drawBattle1 = () => {
 };
 
 const update = (time = 0) => {
-  console.log(spriteTimer)
   switch (state) {
     case STATES.GAME: {
       draw();
@@ -640,6 +659,18 @@ const init = () => {
     name: "",
     qtd: 0,
   })
+
+  inventory[0][0] = {
+    name: "apple",
+    qtd: 3,
+    image: appleImg,
+  };
+  inventory[1][0] = {
+    name: "wood",
+    qtd: 2,
+    image: woodImg,
+  };
+
   generateAttacks();
   changeColorSky(hour);
   for (let i = 0; i < 5; i++) {
