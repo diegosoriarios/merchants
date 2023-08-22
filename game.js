@@ -12,6 +12,8 @@ let dropCounter=0;
 let dropInterval=100;
 let lastTime=0;
 let encounterTime = 60 * 5;
+let needsToChose = !false;
+let chooseSelection = false;
 
 const STATES = {
   GAME: "GAME",
@@ -20,9 +22,62 @@ const STATES = {
   CATCH: "CATCH",
 };
 
+const itemList = {
+  "apple": {
+    value: 1,
+    chancesToFind: .9
+  },
+  "meat": {
+    value: 4,
+    chancesToFind: .3,
+  },
+  "sword": {
+    value: 5,
+    chancesToFind: .3,
+  },
+  "knife": {
+    value: 4,
+    chancesToFind: .6,
+  },
+  "ring": {
+    value: 6,
+    chancesToFind: .3,
+  },
+  "pendant": {
+    value: 3,
+    chancesToFind: .5,
+  },
+  "medication": {
+    value: 7,
+    chancesToFind: .2,
+  },
+  "herbs": {
+    value: 3,
+    chancesToFind: .7,
+  },
+  "fertilizer": {
+    value: 2,
+    chancesToFind: .8,
+  },
+  "wood": {
+    value: 1,
+    chancesToFind: .9,
+  },
+  "books": {
+    value: 8,
+    chancesToFind: .2,
+  },
+  "alcohol": {
+    value: 10,
+    chancesToFind: .1,
+  },
+}
+
 let battleTime = 5 * 60;
 
 let state = STATES.GAME;
+
+let inventory = [[], []];
 
 function printMousePos(event) {
   console.log(event.offsetX, event.offsetY);
@@ -151,6 +206,24 @@ const generateAttacks = () => {
 
 const handleKeyPress = (event) => {
   const code = event.code;
+
+  console.log(code);
+  if (needsToChose) {
+    switch (code) {
+      case "KeyA":
+        chooseSelection = !chooseSelection;
+        break;
+      case "KeyD":
+        chooseSelection = !chooseSelection;
+        break;
+      case "Enter":
+        if (chooseSelection) {
+          state = STATES.BATTLE1
+        } else {
+          needsToChose = false;
+        }
+    }
+  }
 
   if (state === STATES.TETRIS) {
     switch (code) {
@@ -328,6 +401,44 @@ const draw = () => {
     }
   });
   ctx.globalAlpha = 1;
+
+  inventory.forEach((inv, index) => {
+    const inventoryHeight = !index ? 165 : 95;
+    inv.forEach((item, idx) => {
+      const inventoryX = 8 + 32 * idx + (40 * idx);
+      const inventoryY = canvas.height - inventoryHeight;
+  
+      ctx.strokeStyle = "white";
+      ctx.beginPath();
+      ctx.rect(inventoryX, inventoryY, 64, 64);
+      ctx.fillStyle = 'white';
+      ctx.fillText(`${idx}`, inventoryX + 32, inventoryY + 32);
+      ctx.stroke();
+    });
+  })
+
+  if (needsToChose) {
+    ctx.strokeStyle = "yellow";
+    ctx.beginPath();
+    ctx.rect(canvas.width / 2 - (chooseSelection ? canvas.width / 4 + 100 : - canvas.width / 4 + 100), canvas.height / 2 - 25, 200, 50);
+    ctx.stroke();
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(canvas.width / 2 - canvas.width / 4 - 100, canvas.height / 2 - 25, 200, 50);
+    ctx.font = "15px Times";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText("Lutar", canvas.width / 2 - canvas.width / 4, canvas.height / 2);
+    
+    ctx.fillStyle = "black";
+    ctx.fillRect(canvas.width / 2 + canvas.width / 4 - 100, canvas.height / 2 - 25, 200, 50);
+    ctx.font = "15px Times";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText("Fugir", canvas.width / 2 + canvas.width / 4, canvas.height / 2);
+    ctx.font = "12px Times";
+    ctx.fillText("Perde um item", canvas.width / 2 + canvas.width / 4, canvas.height / 2 + 15);
+  }
 };
 
 const drawBattle1 = () => {
@@ -346,12 +457,15 @@ const drawBattle1 = () => {
 };
 
 const update = (time = 0) => {
+  console.log(spriteTimer)
   switch (state) {
     case STATES.GAME: {
       draw();
-      minutes += 1 / 180;
-      spriteTimer += 1;
-      encounterTime--;
+      if (!needsToChose) {
+        minutes += 1 / 180;
+        spriteTimer += 1;
+        encounterTime--;
+      }
 
       if (encounterTime===0) {
         eventTime = 1;
@@ -371,7 +485,7 @@ const update = (time = 0) => {
         console.log(events);
           switch (Math.floor(events)) {
             case 0:
-              state = STATES.BATTLE1
+              needsToChose = true;
               break;
             case 1:
               state = STATES.TETRIS
@@ -392,13 +506,15 @@ const update = (time = 0) => {
         changeColorSky(hour);
         minutes = 0;
       }
-      clouds.forEach((cloud, i) => {
-        if (cloud.x + cloud.w > -150) {
-          cloud.x -= cloud.speed;
-        } else {
-          clouds[i] = generateClouds();
-        }
-      });
+      if (!needsToChose) {
+        clouds.forEach((cloud, i) => {
+          if (cloud.x + cloud.w > -150) {
+            cloud.x -= cloud.speed;
+          } else {
+            clouds[i] = generateClouds();
+          }
+        });
+      }
       break;
     }
     case STATES.TETRIS: {
@@ -414,7 +530,9 @@ const update = (time = 0) => {
     }
     case STATES.BATTLE1: {
       if (battleTime <= 1) {
+        needsToChose = false;
         state = STATES.GAME;
+        battleTime = 5 * 60;
       }
       battleTime -= battleTime / 60;
       drawBattle1();
@@ -514,6 +632,14 @@ const update = (time = 0) => {
 };
 
 const init = () => {
+  inventory[0] = [...Array(8)].fill({
+    name: "",
+    qtd: 0,
+  })
+  inventory[1] = [...Array(8)].fill({
+    name: "",
+    qtd: 0,
+  })
   generateAttacks();
   changeColorSky(hour);
   for (let i = 0; i < 5; i++) {
